@@ -1,8 +1,10 @@
 from django.shortcuts import render
+from django.contrib.auth import authenticate
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status
-from .auth import generate_tokens
+from rest_framework_simplejwt.views import TokenRefreshView
+from .auth import generate_tokens, blacklist_token
 from .serializers import UserRegisterSerializer
 
 class RegisterView(APIView):
@@ -21,3 +23,53 @@ class RegisterView(APIView):
             )
             return response
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+class LoginView(APIView):
+    def post(self, request):
+        username = request.data.get('useranme')
+        password = request.data.get('password')
+
+        user = authenticate(username=username, password=password)
+
+        if not user:
+            return Response(
+                {'error': 'Invalid credentials'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        
+        tokens = generate_tokens(user)
+        response = Response(
+            {'access': tokens['access']},
+            status=status.HTTP_200_OK
+        )
+
+        response.set_cookie(
+            key='refresh_token',
+            value=tokens['refresh'],
+            httponly=True,
+            secure=True,
+            samesite='Lax',
+            max_age=604800
+        )
+
+        return response
+
+class LogoutView(APIView):
+    def post(self, request):
+        try:
+            refresh_token = request.COOKIES.get('refresh_token')
+            if refresh_token:
+                blacklist_token(refresh_token)
+            
+            response = Response(
+                {'message': 'Successfully logged out'},
+                status=status.HTTP_200_OK
+            )
+            response.delete_cookie('refresh_token')
+            return response
+            
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
