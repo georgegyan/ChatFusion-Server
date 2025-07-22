@@ -1,11 +1,14 @@
 from django.shortcuts import render
 from django.contrib.auth import authenticate
+from django_ratelimit.decorators import ratelimit
+from django.utils.decorators import method_decorator
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework_simplejwt.views import TokenRefreshView
 from .auth import generate_tokens, blacklist_token
 from .serializers import UserRegisterSerializer
+
 
 class RegisterView(APIView):
     def post(self, request):
@@ -73,3 +76,18 @@ class LogoutView(APIView):
                 {'error': str(e)},
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+class RateLimitedResponse(Response):
+    def __init__(self, *args, **kwargs):
+        super().__init__(
+            data={
+                "error": "too_many_requests",
+                "message": "You've made too many requests. Please try again later."
+            },
+            status=status.HTTP_429_TOO_MANY_REQUESTS,
+            *args,
+            **kwargs
+        )
+@method_decorator(ratelimit(key='ip', rate='5/m', method='POST'), name='post')
+class ProtectedLoginView(LoginView):
+    pass 

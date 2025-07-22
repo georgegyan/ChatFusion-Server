@@ -48,9 +48,22 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'users.middleware.JWTCookieMiddleware',
+    'users.middleware.RateLimitHeadersMiddleware',
 ]
 
 ROOT_URLCONF = 'core.urls'
 AUTH_USER_MODEL = 'users.User'
 
 ASGI_APPLICATION = 'core.asgi.application'
+
+RATELIMIT_ENABLE = True
+RATELIMIT_USE_CACHE = 'default'
+RATELIMIT_VIEW = 'users,views.RateLimitedResponse'
+
+CACHES['rate_limit'] = {
+    "BACKEND": "django_redis.cache.RedisCache",
+    "LOCATION": "redis://127.0.0.1:6379/2",
+    "OPTIONS": {
+        "CLIENT_CLASS": "django_redis.client.Default",
+    }
+}
