@@ -15,6 +15,7 @@ class RegisterView(APIView):
         serializer = UserRegisterSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.svae()
+            user.send_verification_email() 
             tokens = generate_tokens(user)
             response = Response(tokens, status=status.HTTP_201_CREATED)
             response.set_cookie(
@@ -91,3 +92,28 @@ class RateLimitedResponse(Response):
 @method_decorator(ratelimit(key='ip', rate='5/m', method='POST'), name='post')
 class ProtectedLoginView(LoginView):
     pass 
+
+class VerifyEmailView(APIView):  
+    def get(self, request, token):  
+        try:  
+            user = User.objects.get(verification_token=token)  
+            if (timezone.now() - user.verification_sent_at).days > 3:  
+                return Response(  
+                    {'error': 'verification_expired'},  
+                    status=status.HTTP_400_BAD_REQUEST  
+                )  
+
+            user.email_verified = True  
+            user.verification_token = ''  
+            user.save()  
+
+            return Response(  
+                {'message': 'Email successfully verified'},  
+                status=status.HTTP_200_OK  
+            )  
+
+        except User.DoesNotExist:  
+            return Response(  
+                {'error': 'invalid_token'},  
+                status=status.HTTP_400_BAD_REQUEST  
+            )  

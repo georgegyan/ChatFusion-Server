@@ -1,0 +1,6 @@
+{% extends "templated_mail/base.html" %}  
+{% block content %}  
+<h1>Verify Your Email</h1>  
+<p>Click to verify: {{ protocol }}://{{ domain }}/verify-email/{{ token }}/</p>  
+<p>Link expires in {{ expiry_days }} days</p>  
+{% endblock %}  

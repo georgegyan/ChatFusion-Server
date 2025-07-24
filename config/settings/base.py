@@ -67,3 +67,17 @@ CACHES['rate_limit'] = {
         "CLIENT_CLASS": "django_redis.client.Default",
     }
 }
+
+# Email Configuration  
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'  
+EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')  
+EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))  
+EMAIL_USE_TLS = True  
+EMAIL_HOST_USER = os.getenv('EMAIL_USER')  
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_PASSWORD')  
+DEFAULT_FROM_EMAIL = f"ChatFusion <{os.getenv('EMAIL_USER')}>"  
+
+# Verification Settings  
+ACCOUNT_EMAIL_VERIFICATION = 'mandatory'  
+ACCOUNT_EMAIL_SUBJECT_PREFIX = '[ChatFusion] '  
+VERIFICATION_EXPIRE_DAYS = 3  
