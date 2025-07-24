@@ -1,11 +1,27 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
+from .validators import ComplexityValidator
+from zxcvbn import zxcvbn
 
 User = get_user_model()
 
 class UserRegisterSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True, validators=[validate_password])
+    password_strength = serializers.SerializerMethodField()
+
+    def get_password_strength(self, obj):
+        return zxcvbn(self.initial_data['password'])['score']
+    
+    class Meta:
+        fields = [..., 'password_strength']
+
+    password = serializers.CharField(
+        write_only=True,
+        validators=[
+            validate_password,
+            ComplexityValidator(min_score=3)
+        ]
+    )
 
     class Meta:
         model = User

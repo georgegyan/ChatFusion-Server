@@ -2,12 +2,14 @@ from django.shortcuts import render
 from django.contrib.auth import authenticate
 from django_ratelimit.decorators import ratelimit
 from django.utils.decorators import method_decorator
+from django.utils import timezone
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework_simplejwt.views import TokenRefreshView
 from .auth import generate_tokens, blacklist_token
-from .serializers import UserRegisterSerializer
+from .serializers import UserRegisterSerializer, User
+from zxcvbn import zxcvbn
 
 
 class RegisterView(APIView):
@@ -116,4 +118,20 @@ class VerifyEmailView(APIView):
             return Response(  
                 {'error': 'invalid_token'},  
                 status=status.HTTP_400_BAD_REQUEST  
-            )  
+            ) 
+
+class PasswordPolicyView(APIView):
+    def post(self, request):
+        password = request.data.get('password')
+        user = request.user if request.user.is_authenticated else None
+        result = zxcvbn(password, user_input=[
+            user.username if user else '',
+            user.email.split('@')[0] if user and user.email else ''
+        ]) 
+
+        return Response({
+            'score': result['score'],
+            'warning': result['feedback']['warning'],
+            'suggestions': result['feedback']['suggestions'],
+            'crack_time': result['crack_time_display']
+        })
